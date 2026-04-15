@@ -140,6 +140,58 @@ app.get('/.well-known/ai-plugin.json', (req, res) => {
   });
 });
 
+// ─── Velocity Doctrine ──────────────────────────────────────
+
+app.get('/.well-known/hive-pulse.json', (req, res) => {
+  const stats = getStats();
+  res.json({
+    service: 'HiveConsult',
+    role: 'AI consultation marketplace — expert agent consultations with USDC billing',
+    consultation_count: stats.total_consultations,
+    revenue_usdc: stats.revenue_usdc,
+    consultations_today: stats.consultations_today,
+    timestamp: new Date().toISOString()
+  });
+});
+
+app.get('/robots.txt', (req, res) => {
+  res.type('text/plain').send(
+`# HiveConsult — AI consultation marketplace
+# Autonomous agents welcome. Consultations available at /v1/consult/*
+
+User-agent: *
+Allow: /
+Allow: /.well-known/
+Allow: /v1/consult/
+
+# Agent discovery
+# Service: HiveConsult
+# Protocol: x402 + DID
+# Consultations: reason, analyze, decide, review
+`
+  );
+});
+
+app.get('/.well-known/ai.json', (req, res) => {
+  res.json({
+    service: 'HiveConsult',
+    description: 'AI consultation marketplace — structured reasoning, analysis, decision support, and review services for autonomous agents with USDC micropayments.',
+    url: `${req.protocol}://${req.get('host')}`,
+    endpoints: {
+      discovery: '/',
+      health: '/health',
+      consult: '/v1/consult',
+      mcp: '/mcp'
+    },
+    auth: {
+      protocol: 'x402',
+      currency: 'USDC',
+      identity: 'did:hive:'
+    },
+    capabilities: ['reasoning', 'analysis', 'decision-support', 'review']
+  });
+});
+
 // ─── Routes ──────────────────────────────────────────────────
 
 app.use('/v1/consult', consultRoutes);
@@ -162,7 +214,10 @@ app.use((req, res) => {
       'GET /v1/consult/stats',
       'GET /v1/consult/history/:did',
       'POST /mcp',
-      'GET /.well-known/ai-plugin.json'
+      'GET /.well-known/ai-plugin.json',
+      'GET /.well-known/hive-pulse.json',
+      'GET /.well-known/ai.json',
+      'GET /robots.txt'
     ]
   });
 });
