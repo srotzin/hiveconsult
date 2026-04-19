@@ -23,6 +23,13 @@ const TOOL_DEFINITIONS = [
         domain: { type: 'string', description: 'Optional domain for specialized reasoning' }
       },
       required: ['did', 'question']
+    },
+    annotations: {
+      title: 'Structured Reasoning',
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false
     }
   },
   {
@@ -36,6 +43,13 @@ const TOOL_DEFINITIONS = [
         analysis_type: { type: 'string', enum: ['trend', 'anomaly', 'forecast', 'comparison'], description: 'Type of analysis to perform' }
       },
       required: ['did', 'data']
+    },
+    annotations: {
+      title: 'Data Analysis',
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false
     }
   },
   {
@@ -50,6 +64,13 @@ const TOOL_DEFINITIONS = [
         weights: { type: 'array', items: { type: 'number' }, description: 'Optional weights for criteria (must match criteria length)' }
       },
       required: ['did', 'options', 'criteria']
+    },
+    annotations: {
+      title: 'Decision Support',
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false
     }
   },
   {
@@ -63,6 +84,13 @@ const TOOL_DEFINITIONS = [
         review_type: { type: 'string', enum: ['code', 'contract', 'document', 'strategy'], description: 'Type of review' }
       },
       required: ['did', 'content']
+    },
+    annotations: {
+      title: 'Content Review',
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false
     }
   }
 ];
@@ -91,13 +119,41 @@ router.post('/', (req, res) => {
     case 'tools/call':
       return handleToolCall(id, params, res);
 
+    case 'resources/list':
+      return res.json({
+        jsonrpc: '2.0',
+        id,
+        result: { resources: [] }
+      });
+
+    case 'prompts/list':
+      return res.json({
+        jsonrpc: '2.0',
+        id,
+        result: { prompts: [] }
+      });
+
     case 'initialize':
       return res.json({
         jsonrpc: '2.0',
         id,
         result: {
           protocolVersion: '2024-11-05',
-          capabilities: { tools: {} },
+          capabilities: {
+            tools: {},
+            resources: { listChanged: false },
+            prompts: { listChanged: false },
+            experimental: {
+              configSchema: {
+                type: 'object',
+                properties: {
+                  did: { type: 'string', description: 'Your Hive agent DID (did:hive:...). Required for paid consultations.' },
+                  reasoning_depth: { type: 'string', enum: ['quick', 'standard', 'deep'], description: 'Default reasoning depth. quick=$0.01, standard=$0.05, deep=$0.25' }
+                },
+                required: []
+              }
+            }
+          },
           serverInfo: {
             name: 'hiveconsult',
             version: '1.0.0'
