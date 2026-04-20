@@ -1,0 +1,226 @@
+# Smithery Registry — HiveConsult MCP Server
+# https://smithery.ai
+
+startCommand:
+  type: http
+  configSchema:
+    type: object
+    properties:
+      did:
+        type: string
+        description: "Your Hive agent DID (e.g. did:hive:xxxx). Obtained free at hivegate.onrender.com — call hive_onboard to register in 60 seconds."
+      reasoning_depth:
+        type: string
+        enum: [quick, standard, deep]
+        default: standard
+        description: "Default reasoning depth for all consultations. quick=$0.01 per call, standard=$0.05, deep=$0.25. Can be overridden per call."
+      domain:
+        type: string
+        description: "Optional default domain for specialized reasoning (e.g. 'finance', 'legal', 'engineering'). Applied to all hiveconsult_reason calls unless overridden."
+    required: []
+  url: https://hiveconsult.onrender.com/mcp
+
+name: hiveconsult
+displayName: Hive Consult
+version: "1.1.0"
+description: >
+  Agent-to-agent reasoning-as-a-service on Hive Civilization. Structured chain-of-thought
+  reasoning, data analysis, decision support, and content review — billed per-call via x402
+  micropayments. Every consultation is logged to your Hive DID's trust graph.
+
+author:
+  name: Steve Rotzin
+  email: steve@thehiveryiq.com
+  url: https://www.thehiveryiq.com
+
+license: MIT
+
+homepage: https://www.thehiveryiq.com
+
+repository:
+  type: git
+  url: https://github.com/srotzin/hiveconsult
+
+transport: streamable-http
+
+endpoint: https://hiveconsult.onrender.com/mcp
+
+protocol: "2024-11-05"
+
+categories:
+  - reasoning
+  - agent-to-agent
+  - analysis
+  - decision-support
+  - ai
+
+tags:
+  - mcp
+  - hive
+  - reasoning
+  - chain-of-thought
+  - analysis
+  - decision
+  - review
+  - x402
+  - did
+  - agent
+
+tools:
+  - name: hiveconsult_reason
+    description: >
+      Submit a question or problem for structured chain-of-thought reasoning.
+      Returns step-by-step analysis with confidence score and ranked recommendations.
+      Billed per-call via x402 micropayment to your Hive DID balance.
+    annotations:
+      readOnlyHint: false
+      destructiveHint: false
+      idempotentHint: false
+      openWorldHint: false
+    inputs:
+      - name: did
+        type: string
+        required: true
+        description: Your Hive agent DID (did:hive:...). Required for billing and trust graph attribution.
+      - name: question
+        type: string
+        required: true
+        description: The question, problem, or hypothesis to reason about.
+      - name: context
+        type: string
+        required: false
+        description: Optional additional context — background information that should inform the reasoning chain.
+      - name: reasoning_depth
+        type: string
+        required: false
+        enum: [quick, standard, deep]
+        description: "Depth of reasoning chain. quick=$0.01 (fast), standard=$0.05 (recommended), deep=$0.25 (multi-step, highest accuracy)."
+      - name: domain
+        type: string
+        required: false
+        description: "Optional domain specialization (e.g. 'finance', 'legal', 'engineering', 'medical'). Focuses reasoning heuristics."
+
+  - name: hiveconsult_analyze
+    description: >
+      Analyze data for trends, anomalies, forecasts, or comparative benchmarking.
+      Returns structured findings with confidence scores and actionable insights.
+    annotations:
+      readOnlyHint: false
+      destructiveHint: false
+      idempotentHint: false
+      openWorldHint: false
+    inputs:
+      - name: did
+        type: string
+        required: true
+        description: Your Hive agent DID (did:hive:...).
+      - name: data
+        required: true
+        description: Data to analyze — accepts arrays, objects, or scalar values.
+      - name: analysis_type
+        type: string
+        required: false
+        enum: [trend, anomaly, forecast, comparison]
+        description: "Type of analysis. trend=time-series direction, anomaly=outlier detection, forecast=forward projection, comparison=multi-entity benchmarking."
+
+  - name: hiveconsult_decide
+    description: >
+      Decision support: rank a set of options against weighted criteria.
+      Returns scored, ranked options with per-criterion reasoning.
+      Use before any multi-option agent decision to get an auditable choice record.
+    annotations:
+      readOnlyHint: false
+      destructiveHint: false
+      idempotentHint: false
+      openWorldHint: false
+    inputs:
+      - name: did
+        type: string
+        required: true
+        description: Your Hive agent DID (did:hive:...).
+      - name: options
+        type: array
+        required: true
+        description: List of options to evaluate — minimum 2 (e.g. ['Option A', 'Option B', 'Option C']).
+      - name: criteria
+        type: array
+        required: true
+        description: Evaluation criteria (e.g. ['cost', 'speed', 'reliability']). Each option is scored against every criterion.
+      - name: weights
+        type: array
+        required: false
+        description: Optional numeric weights for criteria — must match criteria array length. Higher = more important. If omitted, all criteria weighted equally.
+
+  - name: hiveconsult_review
+    description: >
+      Review code, smart contracts, documents, or strategic plans.
+      Returns categorized issues (critical/warning/suggestion), a risk score, and prioritized recommendations.
+    annotations:
+      readOnlyHint: false
+      destructiveHint: false
+      idempotentHint: false
+      openWorldHint: false
+    inputs:
+      - name: did
+        type: string
+        required: true
+        description: Your Hive agent DID (did:hive:...).
+      - name: content
+        type: string
+        required: true
+        description: The content to review — paste code, contract text, document body, or strategy description.
+      - name: review_type
+        type: string
+        required: false
+        enum: [code, contract, document, strategy]
+        description: "Type of review to apply. code=security+correctness, contract=legal+financial risk, document=clarity+accuracy, strategy=feasibility+risk."
+
+prompts:
+  - name: reason_about
+    description: "Run structured chain-of-thought reasoning on a problem using your Hive DID"
+    arguments:
+      - name: question
+        description: The question or problem to reason about
+        required: true
+      - name: depth
+        description: "Reasoning depth: quick, standard, or deep"
+        required: false
+
+  - name: decide_between
+    description: "Rank options against criteria and return the best choice with reasoning"
+    arguments:
+      - name: options
+        description: "Comma-separated list of options to evaluate"
+        required: true
+      - name: criteria
+        description: "Comma-separated list of decision criteria"
+        required: true
+
+  - name: review_this
+    description: "Review code, contract, document, or strategy for issues and risk score"
+    arguments:
+      - name: content
+        description: The content to review
+        required: true
+      - name: review_type
+        description: "Type: code, contract, document, or strategy"
+        required: false
+
+resources:
+  - name: hive_pricing
+    description: "HiveConsult per-call pricing: quick=$0.01, standard=$0.05, deep=$0.25. Billed via x402 micropayment to Hive DID balance."
+    uri: https://hiveconsult.onrender.com/v1/consult/pricing
+
+  - name: hive_network_pulse
+    description: "Live Hive network state — agent count, settlement velocity, network health"
+    uri: https://hiveforge-lhu4.onrender.com/.well-known/hive-pulse.json
+
+runtime:
+  type: node
+  version: ">=18"
+  command: node src/server.js
+  env:
+    - name: PORT
+      description: HTTP port to listen on
+      default: "3000"
+      required: false
