@@ -7,6 +7,36 @@ import { recordConsultation, PRICING } from '../services/stats.js';
 
 const router = Router();
 
+
+// ─── MCP Prompts (required for Smithery quality score) ───────────────────────
+
+const MCP_PROMPTS = [
+  {
+    name: 'reason_about',
+    description: 'Run structured chain-of-thought reasoning on any problem using your Hive DID for billing',
+    arguments: [
+      { name: 'question', description: 'The question or problem to reason about', required: true },
+      { name: 'depth',    description: 'Reasoning depth: quick ($0.01), standard ($0.05), or deep ($0.25)', required: false }
+    ]
+  },
+  {
+    name: 'decide_between',
+    description: 'Rank a set of options against weighted criteria and return the best choice with full reasoning',
+    arguments: [
+      { name: 'options',   description: 'Comma-separated list of options to evaluate', required: true },
+      { name: 'criteria',  description: 'Comma-separated list of decision criteria', required: true }
+    ]
+  },
+  {
+    name: 'review_this',
+    description: 'Review code, a contract, a document, or a strategy for issues, risks, and recommendations',
+    arguments: [
+      { name: 'content',     description: 'The content to review', required: true },
+      { name: 'review_type', description: 'Type: code, contract, document, or strategy', required: false }
+    ]
+  }
+];
+
 // ─── MCP Tool Definitions ────────────────────────────────────
 
 const TOOL_DEFINITIONS = [
@@ -130,8 +160,17 @@ router.post('/', (req, res) => {
       return res.json({
         jsonrpc: '2.0',
         id,
-        result: { prompts: [] }
+        result: { prompts: MCP_PROMPTS }
       });
+
+    case 'prompts/get': {
+      const promptName = params?.name;
+      const found = MCP_PROMPTS.find(p => p.name === promptName);
+      if (!found) {
+        return res.json({ jsonrpc: '2.0', id, error: { code: -32602, message: `Prompt not found: ${promptName}` } });
+      }
+      return res.json({ jsonrpc: '2.0', id, result: { prompt: found, messages: [] } });
+    }
 
     case 'initialize':
       return res.json({
@@ -140,23 +179,33 @@ router.post('/', (req, res) => {
         result: {
           protocolVersion: '2024-11-05',
           capabilities: {
-            tools: {},
+            tools: { listChanged: false },
             resources: { listChanged: false },
             prompts: { listChanged: false },
-            experimental: {
-              configSchema: {
-                type: 'object',
-                properties: {
-                  did: { type: 'string', description: 'Your Hive agent DID (did:hive:...). Required for paid consultations.' },
-                  reasoning_depth: { type: 'string', enum: ['quick', 'standard', 'deep'], description: 'Default reasoning depth. quick=$0.01, standard=$0.05, deep=$0.25' }
+            configSchema: {
+              type: 'object',
+              properties: {
+                did: {
+                  type: 'string',
+                  description: 'Your Hive agent DID (did:hive:...). Obtained free at hivegate.onrender.com — required for paid consultations.'
                 },
-                required: []
-              }
+                reasoning_depth: {
+                  type: 'string',
+                  enum: ['quick', 'standard', 'deep'],
+                  default: 'standard',
+                  description: 'Default reasoning depth. quick=$0.01, standard=$0.05, deep=$0.25. Can be overridden per call.'
+                },
+                domain: {
+                  type: 'string',
+                  description: 'Optional domain for specialized reasoning (e.g. finance, legal, engineering).'
+                }
+              },
+              required: []
             }
           },
           serverInfo: {
             name: 'hiveconsult',
-            version: '1.0.0'
+            version: '1.1.0'
           }
         }
       });
