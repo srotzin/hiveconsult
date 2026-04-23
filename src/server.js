@@ -242,3 +242,47 @@ app.listen(PORT, () => {
 });
 
 export default app;
+
+// ─── HiveAI Revenue Endpoint ─────────────────────────────────────────────────
+// POST /v1/consult/ai/brief  ($0.08/call — premium strategic intelligence)
+const _HIVEAI_URL   = 'https://hive-ai-1.onrender.com/v1/chat/completions';
+const _HIVEAI_MODEL = 'meta-llama/llama-3.1-8b-instruct';
+const _HIVEAI_KEY   = process.env.HIVE_INTERNAL_KEY || 'hive_internal_125e04e071e8829be631ea0216dd4a0c9b707975fcecaf8c62c6a2ab43327d46';
+
+app.post('/v1/consult/ai/brief', async (req, res) => {
+  const { question, context = '', domain = 'strategy', agent_did } = req.body || {};
+  if (!question) {
+    return res.status(400).json({ success: false, error: 'question required' });
+  }
+  try {
+    const system = 'You are HiveConsult — the senior strategic advisor for autonomous agents. You have deep expertise across DeFi, agent networks, trust systems, compliance, and capital allocation. Answer directly, as a seasoned operator who has seen what works. 3-4 sentences max.';
+    const user = `Domain: ${domain}. ${context ? `Context: ${context}. ` : ''}Question: ${question}`;
+
+    let brief;
+    try {
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), 12_000);
+      const aiRes = await fetch(_HIVEAI_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${_HIVEAI_KEY}` },
+        body: JSON.stringify({ model: _HIVEAI_MODEL, max_tokens: 200, messages: [{ role: 'system', content: system }, { role: 'user', content: user }] }),
+        signal: ctrl.signal,
+      });
+      clearTimeout(timer);
+      const data = await aiRes.json();
+      brief = data?.choices?.[0]?.message?.content?.trim() || null;
+    } catch (_) { brief = null; }
+
+    return res.json({
+      success: true,
+      brief: brief || `Strategic assessment for "${question}" in domain ${domain}: The highest-leverage action is typically the one that compounds network position rather than depletes it. Consult HiveCapital for allocation, HiveTrust for counterparty risk, and HiveLaw for contract enforcement before committing.`,
+      domain,
+      agent_did: agent_did || null,
+      source: brief ? 'hiveai' : 'fallback',
+      price_usdc: 0.08,
+      generated_at: new Date().toISOString(),
+    });
+  } catch (err) {
+    return res.json({ success: true, brief: 'Strategic brief temporarily unavailable. Try HiveForge /v1/consult/ai/brief as fallback.', price_usdc: 0.08, _fallback: true });
+  }
+});
